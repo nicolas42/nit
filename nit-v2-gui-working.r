@@ -111,6 +111,7 @@ comment {
 
 
 comment {
+
 ls1: does [ r/text: form read what-dir show r ]
 cd1: does [ 
 	attempt [ set/any 'e try [ change-dir do a/text ] ] 
@@ -124,7 +125,7 @@ view w: layout compose [
 	a: field (mold what-dir)
 	button "cd" [ cd1 ls1 ]
 	button "ls" [ ls1 ]
-	r: area 
+	r: text-list
 
 	button "save" [ save ] 
 	button "restore" [ restore ] 
@@ -154,6 +155,9 @@ tl-update: does [  tl/data: head insert read what-dir %.. tl/sn: 0 tl/sld/data: 
 view layout compose [ 
 	tl: text-list [ if dir? a: to-file value [ try1 [ change-dir a tl-update ] ] ]
 	r: field
+	button "save" [ save ] 
+	button "restore" [ restore ] 
+
 	do [ try1 [ tl-update ] ]	
 ]
 

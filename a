@@ -1,0 +1,102 @@
+rebol []
+
+file-walk: func [
+	{Deep read a directory given a dir d
+	an output block o and a boolean function fn}
+	d fn /local f
+] [
+	f: read d
+	foreach f f [ do :fn d/:f ]
+	foreach f f [ if #"/" = last f [ file-walk d/:f :fn ] ]
+]
+
+zero-extend: funct [ a n ] [ a: mold a  head insert/dup a "0" n - length? a ]
+
+now-descending: funct [ ] [
+	now-time: replace/all mold now/time ":" ""
+	rejoin [ "" zero-extend now/year 4 zero-extend now/month 2 
+		zero-extend now/day 2 "-" now-time ]
+]
+
+init: funct [ ] [
+
+	attempt probe [
+	make-dir %.nit/
+	make-dir %.nit/files/
+	make-dir %.nit/states/
+	]
+
+]
+
+commit: funct [ ] [
+
+	v: copy [ ] 
+	file-walk %. func [ f ] [ 
+	
+		if find/match f "./.nit" [ return ]
+		
+		filename: join %./.nit/files/ mold checksum/method f 'sha1
+		foreach c "#{}" [ replace/all filename c "" ]
+		write filename read f
+		append v filename  append v f   
+	]   
+	write/lines rejoin [ %.nit/states/ now-descending ] v
+
+	forskip v 2 [ print rejoin [ v/2 " => " v/1 ] ]
+]
+
+revert-to: funct [ file ] [
+	a: read/lines file	
+	forskip a 2 [ print rejoin [ a/1 " => " a/2 ] attempt [ write to-file a/2 read to-file a/1 ] ]
+]
+
+
+try-to: func [ arg ] [
+ 
+	attempt [ set/any 'e try arg ] 
+	if error? get/any 'e [ e: disarm e ] 
+	if unset? get/any 'e [ e: "" ]
+
+;	r/text: form e
+;	show r
+
+    print e
+]
+
+
+insert-all: func [ a b ] [
+    forall a [ a/1: head insert a/1 b ]
+    a: head a
+    return a
+]
+
+
+gui-update: has [ dir ] [  
+
+    f/data: append copy [ %.. ] read what-dir
+    s/data: sort/reverse read dir: %.nit/states/
+    insert-all s/data dir
+
+    f/sn: 0 
+    f/sld/data: 0 
+    f/update 
+    show f 
+
+    s/picked: append copy
+
+    show s 
+
+]
+
+view layout compose [ 
+	f: text-list 450x450 [ if dir? a: to-file value [ try-to [ change-dir a gui-update ] ] ]
+    s: text-list  450x300
+;	r: field
+    across
+;    button "previous" [ s/picked: first prev find s/data s/picked gui-update ]
+	button "revert" [ revert-to first s/picked ] 
+;    button "next" [ s/picked: first next find s/data s/picked ] 
+	button "commit" [ commit gui-update ]
+
+	do [ try-to [ gui-update ] ]	
+]
